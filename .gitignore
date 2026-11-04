@@ -1,0 +1,10 @@
+# Third-party dependencies
+/include/
+
+# Build output
+/build/
+/cmake-build-*/
+
+# macOS generated files
+.DS_Store
+*.dSYM/
