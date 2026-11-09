@@ -13,7 +13,7 @@
 
 namespace {
 
-constexpr double kFramerateLimit = 00.0;
+constexpr double kFramerateLimit = 60.0;
 constexpr float kMaxFrameTime = 0.1f;    // seconds. Caps dt so a stall (window drag, breakpoint) can't wreck the physics
 constexpr float kTurnRate = 75.0f;       // degrees per second while a turn key is held
 
@@ -112,8 +112,8 @@ void Game::loadBackground() {
         {"backgrounds/bg1/06_back_mountains.png", 0.10f, 1.3f},
         {"backgrounds/bg1/07_mid_hills.png",      0.16f, 1.25f},
         //{"backgrounds/bg1/08_mid_forest.png",     0.25f},
-        {"backgrounds/bg1/09_front_grass.png",    0.67f},
-        {"backgrounds/bg1/10_front_leafs.png",    0.68f},
+        //{"backgrounds/bg1/09_front_grass.png",    0.67f},
+        //{"backgrounds/bg1/10_front_leafs.png",    0.68f},
         // {"backgrounds/bg1/11_front_trees1.png", 0.69f},
         // {"backgrounds/bg1/12_front_trees2.png", 0.70f},
         // {"backgrounds/bg1/13_front_rocks.png",  0.71f},
@@ -297,7 +297,12 @@ void Game::update(float dt) {
     physicsSystem.update(registry, dt);
     particleTrailSystem.update(registry, lifetimeSystem, dt);
     lifetimeSystem.update(registry, dt);
-    camera.update(registry.getComponent<engine::components::Transform>(playerPlane).position, dt);
+
+    sf::Vector2f ppp = registry.getComponent<engine::components::Transform>(playerPlane).position;
+    camera.update(ppp, dt);
+    TerrainMaker::updateWorld(ppp.x, windowParams.width);
+
+    terrainRenderer.updateVAO();
 
     now += dt; // increase global time counter
 }
@@ -317,6 +322,11 @@ void Game::draw() {
         ZoneScopedN("Entity draw");
         // Render all entities
         renderSystem.render(registry, window, camera);
+    }
+
+    {
+        ZoneScopedN("Terrain draw");
+        terrainRenderer.draw(window);
     }
 
     // Screen space
@@ -367,7 +377,7 @@ void Game::run() {
     FrameLimiter frameLimiter(kFramerateLimit);
     // Disable SFML framerate limiters  
     window.setFramerateLimit(0);
-    window.setVerticalSyncEnabled(true);
+    window.setVerticalSyncEnabled(false);
 
     // Initialize 
     InitializeAllEntityComponents();
@@ -377,6 +387,8 @@ void Game::run() {
     changePlayerPlane(PlaneID);
     addWeaponsToEntity(playerPlane);
     camera.snapTo(registry.getComponent<engine::components::Transform>(playerPlane).position);
+
+    TerrainMaker(0);
 
     FpsCounter fpsCounter;
     sf::Clock clock;
